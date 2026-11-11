@@ -1,5 +1,5 @@
 python-dotenv
-azure-ai-speech
+azure-cognitiveservices-speech
 azure-ai-textanalytics
 azure-identity
 azure-ai-projects
