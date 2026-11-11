@@ -15,7 +15,8 @@ SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
 def transcribe_audio(audio_path: str) -> str:
     """
     Transcrit intégralement un fichier audio avec Azure AI Speech
-    grâce à la reconnaissance continue.
+    grâce à la reconnaissance continue et à la détection automatique
+    de la langue.
     """
 
     if not SPEECH_KEY or not SPEECH_REGION:
@@ -34,7 +35,12 @@ def transcribe_audio(audio_path: str) -> str:
         region=SPEECH_REGION
     )
 
-    speech_config.speech_recognition_language = "fr-FR"
+    # AJOUT : Configuration de la détection automatique de la langue
+    auto_detect_config = (
+        speechsdk.languageconfig.AutoDetectSourceLanguageConfig(
+            languages=["fr-FR", "en-US", "es-ES", "de-DE"]
+        )
+    )
 
     # Configuration du fichier audio
     audio_config = speechsdk.audio.AudioConfig(
@@ -44,11 +50,13 @@ def transcribe_audio(audio_path: str) -> str:
     # Création du recognizer
     recognizer = speechsdk.SpeechRecognizer(
         speech_config=speech_config,
+        auto_detect_source_language_config=auto_detect_config,
         audio_config=audio_config
     )
 
     # Stockage des phrases reconnues
     transcription_parts = []
+    detected_languages = set()
     done = threading.Event()
     errors = []
 
@@ -56,6 +64,16 @@ def transcribe_audio(audio_path: str) -> str:
     def on_recognized(event):
         if event.result.reason == speechsdk.ResultReason.RecognizedSpeech:
             text = event.result.text.strip()
+
+            # AJOUT : Récupération de la langue détectée
+            language_result = speechsdk.AutoDetectSourceLanguageResult(
+                event.result
+            )
+            detected_language = language_result.language
+
+            if detected_language and detected_language not in detected_languages:
+                detected_languages.add(detected_language)
+                print(f"Langue détectée : {detected_language}")
 
             if text:
                 transcription_parts.append(text)
