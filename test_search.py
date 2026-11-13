@@ -1,14 +1,25 @@
 
 from app.rag.search import search_documents
 
-question = "Comment obtenir un remboursement ?"
+questions = [
+    "Comment obtenir un remboursement ?",
+    "Quel est le délai de livraison ?",
+    "Quels sont les tarifs des restaurants ?",
+    "Quels moyens de paiement sont acceptés ?"
+]
 
-results = search_documents(question)
+for question in questions:
+    print("\n" + "=" * 60)
+    print(f"QUESTION : {question}")
+    print("=" * 60)
 
-print(f"\nQuestion : {question}")
-print("\nRésultats :")
+    documents = search_documents(question, top=3)
 
-for document in results:
-    print(f"\nFichier : {document['file_name']}")
-    print(f"Score : {document['score']}")
-    print(f"Contenu : {document['content']}")
+    if not documents:
+        print("Aucun document trouvé.")
+        continue
+
+    for doc in documents:
+        print(f"\nDocument : {doc['file_name']}")
+        print(f"Score : {doc['score']:.4f}")
+        print(f"Contenu : {doc['content'][:150]}...")
