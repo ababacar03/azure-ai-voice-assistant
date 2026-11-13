@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 from openai import OpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
-from app.rag.search import search_documents
+from app.rag.search import hybrid_search_documents
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
@@ -38,7 +38,7 @@ def generate_answer(question: str) -> dict:
         raise ValueError("La question ne peut pas être vide.")
 
     # 1. Rechercher les documents
-    documents = search_documents(question, top=3)
+    documents = hybrid_search_documents(question, top=3)
 
     if not documents:
         return {

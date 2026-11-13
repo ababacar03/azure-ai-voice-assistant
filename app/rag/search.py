@@ -6,12 +6,17 @@ from dotenv import load_dotenv
 from azure.core.credentials import AzureKeyCredential
 from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
+from app.rag.embeddings import generate_embedding
+from azure.search.documents.models import VectorizedQuery
 from azure.search.documents.indexes.models import (
     SearchIndex,
     SearchField,
     SearchFieldDataType,
     SimpleField,
     SearchableField,
+    HnswAlgorithmConfiguration,
+    VectorSearch,
+    VectorSearchProfile,
 )
 
 # Chemin du projet
@@ -42,9 +47,8 @@ def get_index_client():
     )
 
 
-def create_search_index():
-    """Crée l'index documentaire dans Azure AI Search."""
 
+def create_search_index():
     client = get_index_client()
 
     fields = [
@@ -60,22 +64,44 @@ def create_search_index():
         SearchableField(
             name="content",
             type=SearchFieldDataType.String
+        ),
+        SearchField(
+            name="content_vector",
+            type=SearchFieldDataType.Collection(
+                SearchFieldDataType.Single
+            ),
+            searchable=True,
+            vector_search_dimensions=1536,
+            vector_search_profile_name="vector-profile"
         )
     ]
 
+    vector_search = VectorSearch(
+        algorithms=[
+            HnswAlgorithmConfiguration(
+                name="hnsw-config"
+            )
+        ],
+        profiles=[
+            VectorSearchProfile(
+                name="vector-profile",
+                algorithm_configuration_name="hnsw-config"
+            )
+        ]
+    )
+
     index = SearchIndex(
         name=INDEX_NAME,
-        fields=fields
+        fields=fields,
+        vector_search=vector_search
     )
 
     client.create_or_update_index(index)
 
-    print(f"Index '{INDEX_NAME}' créé avec succès.")
+    print(f"Index '{INDEX_NAME}' mis à jour avec succès.")
 
 
 def upload_documents():
-    """Envoie les fichiers TXT vers Azure AI Search."""
-
     if not DOCUMENTS_DIR.exists():
         raise FileNotFoundError("Dossier documentaire introuvable.")
 
@@ -89,10 +115,15 @@ def upload_documents():
     for file_path in files:
         content = file_path.read_text(encoding="utf-8")
 
+        print(f"Génération de l'embedding : {file_path.name}")
+
+        embedding = generate_embedding(content)
+
         documents.append({
             "id": file_path.stem,
             "file_name": file_path.name,
-            "content": content
+            "content": content,
+            "content_vector": embedding
         })
 
     search_client = SearchClient(
@@ -101,7 +132,9 @@ def upload_documents():
         credential=AzureKeyCredential(KEY)
     )
 
-    results = search_client.upload_documents(documents=documents)
+    results = search_client.upload_documents(
+        documents=documents
+    )
 
     for result in results:
         if not result.succeeded:
@@ -109,7 +142,8 @@ def upload_documents():
                 f"Échec de l'indexation du document {result.key}"
             )
 
-    print(f"{len(results)} documents indexés avec succès.")
+    print(f"{len(results)} documents indexés avec leurs embeddings.")
+
 
 def search_documents(query: str, top: int = 3):
     """
@@ -148,3 +182,105 @@ def search_documents(query: str, top: int = 3):
 
     return documents
 
+def vector_search_documents(query: str, top: int = 3):
+    """
+    Recherche des documents similaires à la question
+    grâce aux embeddings et à Azure AI Search.
+    """
+
+    if not query or not query.strip():
+        raise ValueError("La question ne peut pas être vide.")
+
+    # Transformer la question en vecteur
+    query_embedding = generate_embedding(query)
+
+    search_client = SearchClient(
+        endpoint=ENDPOINT,
+        index_name=INDEX_NAME,
+        credential=AzureKeyCredential(KEY)
+    )
+
+    vector_query = VectorizedQuery(
+        vector=query_embedding,
+        k_nearest_neighbors=top,
+        fields="content_vector"
+    )
+
+    results = search_client.search(
+        search_text=None,
+        vector_queries=[vector_query],
+        select=["file_name", "content"],
+        top=top
+    )
+
+    documents = []
+
+    for result in results:
+        documents.append({
+            "file_name": result["file_name"],
+            "content": result["content"],
+            "score": result["@search.score"]
+        })
+
+    return documents
+
+def hybrid_search_documents(query: str, top: int = 3):
+    """
+    Combine la recherche par mots-clés (BM25)
+    et la recherche vectorielle.
+    """
+
+    if not query or not query.strip():
+        raise ValueError("La question ne peut pas être vide.")
+
+    query_embedding = generate_embedding(query)
+
+    search_client = SearchClient(
+        endpoint=ENDPOINT,
+        index_name=INDEX_NAME,
+        credential=AzureKeyCredential(KEY)
+    )
+
+    vector_query = VectorizedQuery(
+        vector=query_embedding,
+        k_nearest_neighbors=top,
+        fields="content_vector"
+    )
+
+    results = search_client.search(
+        search_text=query,
+        vector_queries=[vector_query],
+        select=["file_name", "content"],
+        top=top
+    )
+
+    documents = []
+
+    for result in results:
+        documents.append({
+            "file_name": result["file_name"],
+            "content": result["content"],
+            "score": result["@search.score"]
+        })
+
+    return documents
+def delete_document(document_id: str):
+    """Supprime un document de l'index Azure AI Search."""
+
+    search_client = SearchClient(
+        endpoint=ENDPOINT,
+        index_name=INDEX_NAME,
+        credential=AzureKeyCredential(KEY)
+    )
+
+    result = search_client.delete_documents(
+        documents=[{"id": document_id}]
+    )
+
+    for item in result:
+        if not item.succeeded:
+            raise RuntimeError(
+                f"Échec de suppression du document : {document_id}"
+            )
+
+    print(f"Document supprimé : {document_id}")
