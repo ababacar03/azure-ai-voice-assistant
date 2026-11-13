@@ -111,3 +111,40 @@ def upload_documents():
 
     print(f"{len(results)} documents indexés avec succès.")
 
+def search_documents(query: str, top: int = 3):
+    """
+    Recherche les documents les plus pertinents dans Azure AI Search.
+
+    Args:
+        query: Question ou mots-clés de l'utilisateur.
+        top: Nombre maximum de résultats.
+
+    Returns:
+        Liste des documents retrouvés.
+    """
+    if not query.strip():
+        raise ValueError("La question ne peut pas être vide.")
+
+    search_client = SearchClient(
+        endpoint=ENDPOINT,
+        index_name=INDEX_NAME,
+        credential=AzureKeyCredential(KEY)
+    )
+
+    results = search_client.search(
+        search_text=query,
+        top=top,
+        select=["file_name", "content"]
+    )
+
+    documents = []
+
+    for result in results:
+        documents.append({
+            "file_name": result["file_name"],
+            "content": result["content"],
+            "score": result["@search.score"]
+        })
+
+    return documents
+
