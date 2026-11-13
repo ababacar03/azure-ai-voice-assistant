@@ -13,6 +13,10 @@ def analyze_sentiment(text: str) -> dict:
     Analyse le sentiment d'un texte avec Azure AI Language.
     """
 
+    # Vérifier que le texte n'est pas vide
+    if not text or not text.strip():
+        raise ValueError("Le texte à analyser est vide.")
+
     endpoint = os.getenv("AZURE_LANGUAGE_ENDPOINT")
     key = os.getenv("AZURE_LANGUAGE_KEY")
 
