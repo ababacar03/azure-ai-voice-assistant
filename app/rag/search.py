@@ -8,6 +8,7 @@ from azure.search.documents import SearchClient
 from azure.search.documents.indexes import SearchIndexClient
 from app.rag.embeddings import generate_embedding
 from azure.search.documents.models import VectorizedQuery
+from app.rag.chunking import split_text_into_chunks
 from azure.search.documents.indexes.models import (
     SearchIndex,
     SearchField,
@@ -102,47 +103,42 @@ def create_search_index():
 
 
 def upload_documents():
-    if not DOCUMENTS_DIR.exists():
-        raise FileNotFoundError("Dossier documentaire introuvable.")
-
-    files = list(DOCUMENTS_DIR.glob("*.txt"))
-
-    if not files:
-        raise ValueError("Aucun fichier TXT trouvé.")
-
-    documents = []
-
-    for file_path in files:
-        content = file_path.read_text(encoding="utf-8")
-
-        print(f"Génération de l'embedding : {file_path.name}")
-
-        embedding = generate_embedding(content)
-
-        documents.append({
-            "id": file_path.stem,
-            "file_name": file_path.name,
-            "content": content,
-            "content_vector": embedding
-        })
-
     search_client = SearchClient(
         endpoint=ENDPOINT,
         index_name=INDEX_NAME,
         credential=AzureKeyCredential(KEY)
     )
 
-    results = search_client.upload_documents(
-        documents=documents
-    )
+    documents = []
 
-    for result in results:
-        if not result.succeeded:
-            raise RuntimeError(
-                f"Échec de l'indexation du document {result.key}"
-            )
+    for file_path in DOCUMENTS_DIR.glob("*.txt"):
+        content = file_path.read_text(encoding="utf-8")
 
-    print(f"{len(results)} documents indexés avec leurs embeddings.")
+        # Découper le fichier en chunks
+        chunks = split_text_into_chunks(
+            content,
+            chunk_size=500,
+            overlap=100
+        )
+
+        print(f"\nFichier : {file_path.name}")
+        print(f"Nombre de chunks : {len(chunks)}")
+
+        for chunk_index, chunk in enumerate(chunks):
+            embedding = generate_embedding(chunk)
+
+            documents.append({
+                "id": f"{file_path.stem}-{chunk_index}",
+                "file_name": file_path.name,
+                "content": chunk,
+                "content_vector": embedding
+            })
+
+    if documents:
+        result = search_client.upload_documents(documents=documents)
+        print(f"\n{len(result)} chunks envoyés vers Azure AI Search.")
+
+    return documents
 
 
 def search_documents(query: str, top: int = 3):
@@ -284,3 +280,37 @@ def delete_document(document_id: str):
             )
 
     print(f"Document supprimé : {document_id}")
+def delete_all_documents():
+    """
+    Supprime tous les documents présents dans l'index Azure AI Search.
+    """
+
+    search_client = SearchClient(
+        endpoint=ENDPOINT,
+        index_name=INDEX_NAME,
+        credential=AzureKeyCredential(KEY)
+    )
+
+    # Récupérer tous les identifiants des documents
+    results = search_client.search(
+        search_text="*",
+        select=["id"]
+    )
+
+    documents_to_delete = [
+        {"id": document["id"]}
+        for document in results
+    ]
+
+    if not documents_to_delete:
+        print("Aucun document à supprimer.")
+        return
+
+    # Suppression par lots de 1000 documents maximum
+    for start in range(0, len(documents_to_delete), 1000):
+        batch = documents_to_delete[start:start + 1000]
+        search_client.delete_documents(documents=batch)
+
+        print(f"{len(batch)} documents supprimés.")
+
+    print("Nettoyage de l'index terminé.")

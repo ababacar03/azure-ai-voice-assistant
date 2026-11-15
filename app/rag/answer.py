@@ -125,6 +125,8 @@ Documents pertinents :
     )
 
     return {
-        "answer": response.output_text,
-        "sources": [doc["file_name"] for doc in relevant_documents]
-    }
+    "answer": response.output_text,
+    "sources": list(dict.fromkeys(
+        doc["file_name"] for doc in relevant_documents
+    ))
+}

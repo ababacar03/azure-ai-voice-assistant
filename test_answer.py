@@ -1,12 +1,9 @@
-
 from app.rag.answer import generate_answer
 
-
 questions = [
-"Comment obtenir un remboursement ?",
-"Quel est le délai de livraison ?",
-"Quels sont les tarifs des restaurants ?",
-"Quels moyens de paiement sont acceptés ?"
+    "Combien de temps faut-il pour recevoir un remboursement ?",
+    "Quels sont les délais de livraison ?",
+    "Est-ce que vous acceptez les paiements par PayPal ?"
 ]
 
 for question in questions:
@@ -15,5 +12,5 @@ for question in questions:
 
     result = generate_answer(question)
 
-    print("\nRÉPONSE :", result["answer"])
+    print("RÉPONSE :", result["answer"])
     print("SOURCES :", result["sources"])
