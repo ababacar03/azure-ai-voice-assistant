@@ -220,14 +220,27 @@ def vector_search_documents(query: str, top: int = 3):
 
     return documents
 
-def hybrid_search_documents(query: str, top: int = 3):
+
+
+def hybrid_search_documents(
+    query: str,
+    top: int = 3,
+    vector_k: int = 10,
+    min_score: float = 0.0
+):
     """
     Combine la recherche par mots-clés (BM25)
-    et la recherche vectorielle.
+    et la recherche vectorielle, puis filtre les résultats.
     """
 
     if not query or not query.strip():
         raise ValueError("La question ne peut pas être vide.")
+
+    if top <= 0 or vector_k <= 0:
+        raise ValueError("Les paramètres top et vector_k doivent être positifs.")
+
+    if min_score < 0:
+        raise ValueError("Le score minimum ne peut pas être négatif.")
 
     query_embedding = generate_embedding(query)
 
@@ -239,7 +252,7 @@ def hybrid_search_documents(query: str, top: int = 3):
 
     vector_query = VectorizedQuery(
         vector=query_embedding,
-        k_nearest_neighbors=top,
+        k_nearest_neighbors=vector_k,
         fields="content_vector"
     )
 
@@ -253,13 +266,18 @@ def hybrid_search_documents(query: str, top: int = 3):
     documents = []
 
     for result in results:
-        documents.append({
-            "file_name": result["file_name"],
-            "content": result["content"],
-            "score": result["@search.score"]
-        })
+        score = result["@search.score"]
+
+        if score >= min_score:
+            documents.append({
+                "file_name": result["file_name"],
+                "content": result["content"],
+                "score": score
+            })
 
     return documents
+
+
 def delete_document(document_id: str):
     """Supprime un document de l'index Azure AI Search."""
 

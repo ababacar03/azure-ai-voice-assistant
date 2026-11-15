@@ -1,9 +1,9 @@
 from app.rag.answer import generate_answer
 
 questions = [
-    "Combien de temps faut-il pour recevoir un remboursement ?",
-    "Quels sont les délais de livraison ?",
-    "Est-ce que vous acceptez les paiements par PayPal ?"
+"Est-ce que vous acceptez les paiements par PayPal ?",
+"Quels sont vos horaires d'ouverture ?",
+"Est-ce que vous livrez gratuitement ?"
 ]
 
 for question in questions:

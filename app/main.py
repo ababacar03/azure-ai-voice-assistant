@@ -5,6 +5,7 @@ from app.speech.speech_to_text import transcribe_audio
 from app.language.sentiment import analyze_sentiment
 from app.rag.answer import generate_answer
 from app.speech.text_to_speech import text_to_speech
+from app.language.intent import detect_intent
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -26,6 +27,12 @@ def main():
 
         print("\n--- ANALYSE DE SENTIMENT ---")
         print(sentiment)
+
+        # 3. Détection de l'intention
+        intent = detect_intent(transcription)
+
+        print("\n--- INTENTION DÉTECTÉE ---")
+        print(intent)
 
         # 3. Recherche documentaire + GPT-5
         result = generate_answer(transcription)
