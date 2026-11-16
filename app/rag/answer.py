@@ -39,7 +39,11 @@ def generate_answer(question: str, intent: str = "autre") -> dict:
         raise ValueError("La question ne peut pas être vide.")
 
     # 1. Recherche hybride dans Azure AI Search
-    documents = hybrid_search_documents(question, top=3)
+    documents = hybrid_search_documents(
+    question,
+    top=3,
+    intent=intent
+)
 
     if not documents:
         return {

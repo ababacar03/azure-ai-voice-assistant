@@ -4,6 +4,8 @@ questions = [
 "Est-ce que vous acceptez les paiements par PayPal ?",
 "Quels sont vos horaires d'ouverture ?",
 "Est-ce que vous livrez gratuitement ?"
+"Combien coûte le service premium ?",
+"Quel est le prix du service entreprise ?"
 ]
 
 for question in questions:

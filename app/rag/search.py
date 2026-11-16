@@ -222,15 +222,17 @@ def vector_search_documents(query: str, top: int = 3):
 
 
 
+
 def hybrid_search_documents(
     query: str,
     top: int = 3,
     vector_k: int = 10,
-    min_score: float = 0.0
+    min_score: float = 0.0,
+    intent: str = "autre"
 ):
     """
-    Combine la recherche par mots-clés (BM25)
-    et la recherche vectorielle, puis filtre les résultats.
+    Combine BM25 et la recherche vectorielle.
+    Privilégie les documents associés à l'intention détectée.
     """
 
     if not query or not query.strip():
@@ -241,6 +243,9 @@ def hybrid_search_documents(
 
     if min_score < 0:
         raise ValueError("Le score minimum ne peut pas être négatif.")
+
+    # Fichiers à privilégier selon l'intention
+    preferred_files = get_preferred_files(intent)
 
     query_embedding = generate_embedding(query)
 
@@ -260,7 +265,7 @@ def hybrid_search_documents(
         search_text=query,
         vector_queries=[vector_query],
         select=["file_name", "content"],
-        top=top
+        top=max(top, vector_k)
     )
 
     documents = []
@@ -275,7 +280,12 @@ def hybrid_search_documents(
                 "score": score
             })
 
-    return documents
+    # Prioriser les fichiers associés à l'intention
+    documents.sort(
+        key=lambda doc: doc["file_name"] not in preferred_files
+    )
+
+    return documents[:top]
 
 
 def delete_document(document_id: str):
@@ -332,3 +342,22 @@ def delete_all_documents():
         print(f"{len(batch)} documents supprimés.")
 
     print("Nettoyage de l'index terminé.")
+
+def get_preferred_files(intent: str) -> list[str]:
+    """
+    Retourne les fichiers à privilégier selon l'intention.
+    """
+
+    intent_files = {
+        "remboursement": ["remboursements.txt"],
+        "suivi_livraison": ["livraison.txt"],
+        "contact": ["faq_client.txt"],
+        "paiement": ["faq_client.txt"],
+        "information_produit": ["produits.txt"],
+        "question_prix": ["tarifs.txt"],
+        "recommandation": ["produits.txt"],
+        "reclamation": ["faq_client.txt", "remboursements.txt"],
+        "autre": []
+    }
+
+    return intent_files.get(intent, [])
