@@ -1,20 +1,20 @@
 
 from app.language.intent import detect_intent
 
-messages = [
+test_cases = [
     "Je veux récupérer mon argent.",
-    "Comment faire pour être remboursé ?",
     "Où est mon colis ?",
-    "Je voudrais savoir quand ma commande va arriver.",
-    "Comment puis-je contacter votre service client ?",
-    "Avez-vous un numéro de téléphone ?",
     "Est-ce que vous acceptez PayPal ?",
-    "Quels sont les moyens de paiement disponibles ?",
+    "Quels sont les horaires de votre service client ?",
+    "Quelles sont les caractéristiques de ce produit ?",
+    "Combien coûte ce service ?",
+    "Quel restaurant me recommandez-vous ?",
+    "Je suis très déçu de votre service, c'est inadmissible.",
     "Bonjour, comment allez-vous ?"
 ]
 
-for message in messages:
-    intent = detect_intent(message)
+for question in test_cases:
+    intent = detect_intent(question)
 
-    print("\nMessage :", message)
-    print("Intention :", intent)
+    print(f"\nMESSAGE : {question}")
+    print(f"INTENTION : {intent}")

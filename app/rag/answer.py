@@ -29,10 +29,10 @@ client = OpenAI(
 )
 
 
-def generate_answer(question: str) -> dict:
+def generate_answer(question: str, intent: str = "autre") -> dict:
     """
     Recherche les documents et génère une réponse
-    avec un seul appel à GPT-5.
+    en tenant compte de l'intention du client.
     """
 
     if not question or not question.strip():
@@ -57,17 +57,38 @@ def generate_answer(question: str) -> dict:
         for doc in documents
     )
 
-    # 3. Un seul appel à GPT-5
+    # 3. Consignes adaptées à l'intention
+    intent_instructions = {
+        "remboursement": "Le client souhaite obtenir des informations sur un remboursement.",
+        "suivi_livraison": "Le client souhaite obtenir des informations sur sa livraison ou sa commande.",
+        "contact": "Le client cherche à contacter le service client.",
+        "paiement": "Le client pose une question sur les moyens ou modalités de paiement.",
+        "information_produit": "Le client souhaite obtenir des informations sur un produit ou un service.",
+        "question_prix": "Le client souhaite connaître un prix, un tarif ou un coût.",
+        "recommandation": "Le client attend un conseil ou une recommandation.",
+        "reclamation": "Le client exprime une insatisfaction ou signale un problème. Adopte un ton empathique et professionnel.",
+        "autre": "L'intention du client ne correspond pas aux catégories précédentes."
+    }
+
+    intent_context = intent_instructions.get(
+        intent,
+        intent_instructions["autre"]
+    )
+
+    # 4. Génération de la réponse avec GPT-5
     response = client.responses.create(
         model=DEPLOYMENT,
         instructions=(
             "Tu es un assistant de service client. "
             "Tu dois répondre en français, de manière claire et naturelle.\n\n"
+            f"Intention détectée : {intent}\n"
+            f"Contexte de l'intention : {intent_context}\n\n"
             "Consignes :\n"
             "- Utilise exclusivement les informations des documents fournis.\n"
             "- Vérifie que les documents répondent directement à la question.\n"
             "- Une simple proximité de thème ne suffit pas.\n"
             "- N'invente aucune information.\n"
+            "- Adapte ton ton à l'intention du client.\n"
             "- Si aucune information ne permet de répondre, "
             "indique que tu ne disposes pas d'informations suffisantes "
             "et retourne une liste de sources vide.\n"
@@ -105,10 +126,10 @@ Documents disponibles :
         }
     )
 
-    # 4. Récupération du résultat JSON
+    # 5. Récupération du résultat JSON
     result = json.loads(response.output_text)
 
-    # 5. Vérification des sources retournées
+    # 6. Vérification des sources retournées
     available_sources = {
         doc["file_name"] for doc in documents
     }
@@ -118,7 +139,6 @@ Documents disponibles :
         if source in available_sources
     ))
 
-    # Si aucune source valide, on ne conserve pas une réponse non sourcée
     if not sources:
         return {
             "answer": (

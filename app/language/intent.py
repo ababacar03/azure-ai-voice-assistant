@@ -41,14 +41,27 @@ def detect_intent(text: str) -> str:
             "Tu es un système de classification des intentions "
             "dans un service client.\n"
             "Analyse le message et identifie son intention principale.\n\n"
+
             "Catégories possibles :\n"
-            "- remboursement : demande de remboursement ou retour d'argent.\n"
+            "- remboursement : demande de remboursement ou de retour d'argent.\n"
             "- suivi_livraison : suivi de commande, colis ou livraison.\n"
             "- contact : recherche des coordonnées ou moyens de contact.\n"
             "- paiement : questions sur les moyens ou modalités de paiement.\n"
-            "- autre : toute demande ne correspondant pas aux catégories précédentes.\n\n"
-            "Choisis une seule catégorie. "
-            "Ne déduis pas une intention qui n'est pas exprimée."
+            "- information_produit : questions sur les caractéristiques, "
+            "fonctionnalités ou informations concernant un produit ou service.\n"
+            "- question_prix : questions sur les tarifs, prix, coûts ou budgets.\n"
+            "- recommandation : demande de conseils, suggestions ou comparaisons.\n"
+            "- reclamation : insatisfaction, problème rencontré ou plainte.\n"
+            "- autre : message ne correspondant à aucune catégorie précédente.\n\n"
+
+            "Règles de classification :\n"
+            "- Choisis une seule intention principale.\n"
+            "- Base-toi uniquement sur le contenu du message.\n"
+            "- Ne confonds pas une question sur le prix avec une question sur le paiement.\n"
+            "- Une demande de conseil ou de suggestion correspond à recommandation.\n"
+            "- Un problème ou une insatisfaction exprimée correspond à reclamation.\n"
+            "- Si plusieurs intentions sont présentes, choisis celle qui domine.\n"
+            "- Ne déduis pas une intention qui n'est pas exprimée."
         ),
         input=f"Message du client : {text}",
         text={
@@ -66,6 +79,10 @@ def detect_intent(text: str) -> str:
                                 "suivi_livraison",
                                 "contact",
                                 "paiement",
+                                "information_produit",
+                                "question_prix",
+                                "recommandation",
+                                "reclamation",
                                 "autre"
                             ]
                         }

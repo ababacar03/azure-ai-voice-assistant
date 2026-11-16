@@ -35,7 +35,7 @@ def main():
         print(intent)
 
         # 3. Recherche documentaire + GPT-5
-        result = generate_answer(transcription)
+        result = generate_answer(transcription, intent)
 
         print("\n--- RÉPONSE DE L'ASSISTANT ---")
         print(result["answer"])
