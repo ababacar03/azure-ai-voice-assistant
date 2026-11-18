@@ -21,6 +21,7 @@ def main():
     if audio_path.stat().st_size == 0:
         print("Erreur : le fichier audio est vide.")
         return
+    etape = "Speech-to-Text"
 
     try:
         # 1. Speech-to-Text
@@ -32,13 +33,16 @@ def main():
         print("\n--- TRANSCRIPTION ---")
         print(transcription)
 
+
         # 2. Analyse de sentiment
+        etape = "Analyse de sentiment"
         sentiment = analyze_sentiment(transcription)
 
         print("\n--- ANALYSE DE SENTIMENT ---")
         print(sentiment)
 
         # 3. Détection de l'intention
+        etape = "Détection de l'intention"
         intent = detect_intent(transcription)
 
         print("\n--- INTENTION DÉTECTÉE ---")
@@ -46,6 +50,7 @@ def main():
 
        
         # 4. Génération de la réponse
+        etape = "Génération de la réponse"
         if intent == "hors_sujet":
             result = {
                 "answer": (
@@ -66,12 +71,14 @@ def main():
             print("-", source)
 
         # 4. Text-to-Speech
+        etape = "Text-to-Speech"
         text_to_speech(result["answer"], str(output_path))
 
         print("\nRéponse audio générée :", output_path)
 
     except Exception as error:
-        print(f"Erreur : {error}")
+        print(f"\nErreur pendant l'étape : {etape}")
+        print(f"Détails : {error}")
 
 
 if __name__ == "__main__":

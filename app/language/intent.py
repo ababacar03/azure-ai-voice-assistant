@@ -13,27 +13,26 @@ load_dotenv(PROJECT_ROOT / ".env")
 ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
-if not ENDPOINT or not DEPLOYMENT:
-    raise ValueError("Configuration Azure OpenAI manquante.")
 
-token_provider = get_bearer_token_provider(
-    DefaultAzureCredential(),
-    "https://ai.azure.com/.default"
-)
-
-client = OpenAI(
-    base_url=ENDPOINT,
-    api_key=token_provider
-)
 
 
 def detect_intent(text: str) -> str:
     """
     Identifie l'intention principale d'un message client.
     """
-
+    if not ENDPOINT or not DEPLOYMENT:
+        raise ValueError("Configuration Azure OpenAI manquante.")
     if not text or not text.strip():
         raise ValueError("Le message ne peut pas être vide.")
+    token_provider = get_bearer_token_provider(
+    DefaultAzureCredential(),
+    "https://ai.azure.com/.default"
+    )
+
+    client = OpenAI(
+        base_url=ENDPOINT,
+        api_key=token_provider
+    )
 
     response = client.responses.create(
         model=DEPLOYMENT,

@@ -46,7 +46,17 @@ def get_index_client():
         endpoint=ENDPOINT,
         credential=AzureKeyCredential(KEY)
     )
+def get_search_client():
+    """Crée le client permettant de rechercher des documents."""
 
+    if not ENDPOINT or not KEY:
+        raise ValueError("Configuration Azure AI Search manquante.")
+
+    return SearchClient(
+        endpoint=ENDPOINT,
+        index_name=INDEX_NAME,
+        credential=AzureKeyCredential(KEY)
+    )
 
 
 def create_search_index():
@@ -103,11 +113,7 @@ def create_search_index():
 
 
 def upload_documents():
-    search_client = SearchClient(
-        endpoint=ENDPOINT,
-        index_name=INDEX_NAME,
-        credential=AzureKeyCredential(KEY)
-    )
+    search_client = get_search_client()
 
     documents = []
 
@@ -155,11 +161,7 @@ def search_documents(query: str, top: int = 3):
     if not query.strip():
         raise ValueError("La question ne peut pas être vide.")
 
-    search_client = SearchClient(
-        endpoint=ENDPOINT,
-        index_name=INDEX_NAME,
-        credential=AzureKeyCredential(KEY)
-    )
+    search_client = get_search_client()
 
     results = search_client.search(
         search_text=query,
@@ -190,11 +192,7 @@ def vector_search_documents(query: str, top: int = 3):
     # Transformer la question en vecteur
     query_embedding = generate_embedding(query)
 
-    search_client = SearchClient(
-        endpoint=ENDPOINT,
-        index_name=INDEX_NAME,
-        credential=AzureKeyCredential(KEY)
-    )
+    search_client = get_search_client()
 
     vector_query = VectorizedQuery(
         vector=query_embedding,
@@ -249,11 +247,7 @@ def hybrid_search_documents(
 
     query_embedding = generate_embedding(query)
 
-    search_client = SearchClient(
-        endpoint=ENDPOINT,
-        index_name=INDEX_NAME,
-        credential=AzureKeyCredential(KEY)
-    )
+    search_client = get_search_client()
 
     vector_query = VectorizedQuery(
         vector=query_embedding,
@@ -291,11 +285,7 @@ def hybrid_search_documents(
 def delete_document(document_id: str):
     """Supprime un document de l'index Azure AI Search."""
 
-    search_client = SearchClient(
-        endpoint=ENDPOINT,
-        index_name=INDEX_NAME,
-        credential=AzureKeyCredential(KEY)
-    )
+    search_client = get_search_client()
 
     result = search_client.delete_documents(
         documents=[{"id": document_id}]
@@ -313,11 +303,7 @@ def delete_all_documents():
     Supprime tous les documents présents dans l'index Azure AI Search.
     """
 
-    search_client = SearchClient(
-        endpoint=ENDPOINT,
-        index_name=INDEX_NAME,
-        credential=AzureKeyCredential(KEY)
-    )
+    search_client = get_search_client()
 
     # Récupérer tous les identifiants des documents
     results = search_client.search(
