@@ -6,6 +6,7 @@ from app.language.sentiment import analyze_sentiment
 from app.rag.answer import generate_answer
 from app.speech.text_to_speech import text_to_speech
 from app.language.intent import detect_intent
+from app.utils.errors import get_error_message
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -78,7 +79,8 @@ def main():
 
     except Exception as error:
         print(f"\nErreur pendant l'étape : {etape}")
-        print(f"Détails : {error}")
+        print(f"Message : {get_error_message(error)}")
+        print(f"Détails techniques : {error}")
 
 
 if __name__ == "__main__":
