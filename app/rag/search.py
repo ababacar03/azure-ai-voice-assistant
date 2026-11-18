@@ -357,6 +357,7 @@ def get_preferred_files(intent: str) -> list[str]:
         "question_prix": ["tarifs.txt"],
         "recommandation": ["produits.txt"],
         "reclamation": ["faq_client.txt", "remboursements.txt"],
+        "hors_sujet": [],
         "autre": []
     }
 

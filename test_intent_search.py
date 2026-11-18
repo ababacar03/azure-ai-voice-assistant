@@ -20,12 +20,20 @@ tests = [
         "intent": "paiement"
     },
     {
-    "question": "Combien coûte le service premium ?",
-    "intent": "question_prix"
+        "question": "Combien coûte le service premium ?",
+        "intent": "question_prix"
     },
     {
-    "question": "Quel est le prix du service entreprise ?",
-    "intent": "question_prix"
+        "question": "Quel est le prix du service entreprise ?",
+        "intent": "question_prix"
+    },
+    {
+        "question": "Quels sont les avantages du Pack Premium ?",
+        "intent": "information_produit"
+    },
+    {
+        "question": "Quel pack me recommandez-vous pour une entreprise ?",
+        "intent": "recommandation"
     }
 ]
 

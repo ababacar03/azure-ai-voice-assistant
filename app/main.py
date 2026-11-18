@@ -14,10 +14,20 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 def main():
     audio_path = PROJECT_ROOT / "data" / "samples" / "test.wav"
     output_path = PROJECT_ROOT / "data" / "output" / "response.wav"
+    if not audio_path.exists():
+        print(f"Erreur : le fichier audio est introuvable : {audio_path}")
+        return
+
+    if audio_path.stat().st_size == 0:
+        print("Erreur : le fichier audio est vide.")
+        return
 
     try:
         # 1. Speech-to-Text
         transcription = transcribe_audio(str(audio_path))
+        if not transcription or not transcription.strip():
+            print("Erreur : aucune parole n'a été détectée dans l'audio.")
+            return
 
         print("\n--- TRANSCRIPTION ---")
         print(transcription)
@@ -34,8 +44,19 @@ def main():
         print("\n--- INTENTION DÉTECTÉE ---")
         print(intent)
 
-        # 3. Recherche documentaire + GPT-5
-        result = generate_answer(transcription, intent)
+       
+        # 4. Génération de la réponse
+        if intent == "hors_sujet":
+            result = {
+                "answer": (
+                    "Désolé, je suis un assistant dédié à notre service client. "
+                    "Je peux vous aider concernant nos produits, nos tarifs, "
+                    "les commandes et les remboursements."
+                ),
+                "sources": []
+            }
+        else:
+            result = generate_answer(transcription, intent)
 
         print("\n--- RÉPONSE DE L'ASSISTANT ---")
         print(result["answer"])

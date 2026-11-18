@@ -39,7 +39,7 @@ def detect_intent(text: str) -> str:
         model=DEPLOYMENT,
         instructions=(
             "Tu es un système de classification des intentions "
-            "dans un service client.\n"
+            "dans un assistant de service client.\n"
             "Analyse le message et identifie son intention principale.\n\n"
 
             "Catégories possibles :\n"
@@ -52,7 +52,10 @@ def detect_intent(text: str) -> str:
             "- question_prix : questions sur les tarifs, prix, coûts ou budgets.\n"
             "- recommandation : demande de conseils, suggestions ou comparaisons.\n"
             "- reclamation : insatisfaction, problème rencontré ou plainte.\n"
-            "- autre : message ne correspondant à aucune catégorie précédente.\n\n"
+            "- autre : question qui concerne le service client, mais ne correspond "
+            "à aucune catégorie précédente.\n"
+            "- hors_sujet : question sans rapport avec les produits, services "
+            "ou activités de l'entreprise.\n\n"
 
             "Règles de classification :\n"
             "- Choisis une seule intention principale.\n"
@@ -60,6 +63,10 @@ def detect_intent(text: str) -> str:
             "- Ne confonds pas une question sur le prix avec une question sur le paiement.\n"
             "- Une demande de conseil ou de suggestion correspond à recommandation.\n"
             "- Un problème ou une insatisfaction exprimée correspond à reclamation.\n"
+            "- Une question générale sur un compte client ou une demande métier inconnue "
+            "correspond à autre.\n"
+            "- Une question de culture générale, de programmation, de météo ou "
+            "un sujet sans rapport avec l'entreprise correspond à hors_sujet.\n"
             "- Si plusieurs intentions sont présentes, choisis celle qui domine.\n"
             "- Ne déduis pas une intention qui n'est pas exprimée."
         ),
@@ -83,7 +90,8 @@ def detect_intent(text: str) -> str:
                                 "question_prix",
                                 "recommandation",
                                 "reclamation",
-                                "autre"
+                                "autre",
+                                "hors_sujet"
                             ]
                         }
                     },
