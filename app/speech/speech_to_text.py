@@ -114,7 +114,7 @@ def transcribe_audio(audio_path: str) -> str:
         raise RuntimeError("Erreur Azure Speech : " + errors[0])
 
     if not transcription_parts:
-        return "Aucune parole reconnue dans le fichier audio."
+        return ""
 
     # Assemblage de toutes les phrases
     return " ".join(transcription_parts)
