@@ -8,6 +8,8 @@ from app.speech.text_to_speech import text_to_speech
 from app.language.intent import detect_intent
 from app.utils.errors import get_error_message
 from app.language.pii_detection import detect_pii
+from app.language.key_phrases import extract_key_phrases
+from app.language.entities import recognize_entities
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -49,20 +51,51 @@ def main():
         print("\n--- DONNÉES PERSONNELLES DÉTECTÉES ---")
         for entity in pii_result["entities"]:
             print(entity)
-
-        # 2. Analyse de sentiment
-        etape = "Analyse de sentiment"
-        sentiment = analyze_sentiment(texte_securise)
-
-        print("\n--- ANALYSE DE SENTIMENT ---")
-        print(sentiment)
-
-        # 3. Détection de l'intention
+                # 3. Détection de l'intention
         etape = "Détection de l'intention"
         intent = detect_intent(texte_securise)
 
         print("\n--- INTENTION DÉTECTÉE ---")
         print(intent)
+
+        # Analyses conditionnelles selon l'intention
+        sentiment = None
+        key_phrases = []
+        entities = []
+
+        if intent in ["reclamation", "remboursement"]:
+            etape = "Analyse de sentiment"
+            sentiment = analyze_sentiment(texte_securise)
+
+            print("\n--- ANALYSE DE SENTIMENT ---")
+            print(sentiment)
+
+        if intent in [
+            "information_produit",
+            "question_prix",
+            "recommandation"
+        ]:
+            etape = "Extraction des mots-clés"
+            key_phrases = extract_key_phrases(texte_securise)
+
+            print("\n--- MOTS-CLÉS DÉTECTÉS ---")
+            for phrase in key_phrases:
+                print("-", phrase)
+
+        if intent in [
+            "reclamation",
+            "remboursement",
+            "suivi_livraison",
+            "information_produit",
+            "question_prix",
+            "recommandation"
+        ]:
+            etape = "Reconnaissance des entités"
+            entities = recognize_entities(transcription)
+
+        print("\n--- ENTITÉS DÉTECTÉES ---")
+        for entity in entities:
+            print(entity)
 
        
         # 4. Génération de la réponse
