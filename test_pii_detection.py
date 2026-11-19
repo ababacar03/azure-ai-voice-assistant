@@ -1,19 +1,15 @@
-
 from app.language.pii_detection import detect_pii
 
 text = (
-    "Jean Dupont habite au 10 rue de la Paix à Paris. "
-    "Son adresse e-mail est jean.dupont@example.com "
-    "et son numéro de téléphone est 0612345678."
+    "Bonjour, je m'appelle Jean Dupont. "
+    "Mon adresse email est jean.dupont@example.com."
 )
 
-entities = detect_pii(text)
+result = detect_pii(text)
 
-print("\n--- DÉTECTION DES DONNÉES PERSONNELLES ---")
+print("--- TEXTE MASQUÉ ---")
+print(result["redacted_text"])
 
-for entity in entities:
-    print(
-        f"Information : {entity['text']} | "
-        f"Catégorie : {entity['category']} | "
-        f"Confiance : {entity['confidence_score']:.2f}"
-    )
+print("--- INFORMATIONS DÉTECTÉES ---")
+for entity in result["entities"]:
+    print(entity)

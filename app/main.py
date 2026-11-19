@@ -7,6 +7,7 @@ from app.rag.answer import generate_answer
 from app.speech.text_to_speech import text_to_speech
 from app.language.intent import detect_intent
 from app.utils.errors import get_error_message
+from app.language.pii_detection import detect_pii
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
@@ -25,8 +26,9 @@ def main():
     etape = "Speech-to-Text"
 
     try:
-        # 1. Speech-to-Text
+       # 1. Speech-to-Text
         transcription = transcribe_audio(str(audio_path))
+
         if not transcription or not transcription.strip():
             print("Erreur : aucune parole n'a été détectée dans l'audio.")
             return
@@ -35,16 +37,29 @@ def main():
         print(transcription)
 
 
+        # 2. Détection et masquage des données personnelles
+        etape = "Détection des données personnelles"
+        pii_result = detect_pii(transcription)
+
+        texte_securise = pii_result["redacted_text"]
+
+        print("\n--- TEXTE APRÈS MASQUAGE ---")
+        print(texte_securise)
+
+        print("\n--- DONNÉES PERSONNELLES DÉTECTÉES ---")
+        for entity in pii_result["entities"]:
+            print(entity)
+
         # 2. Analyse de sentiment
         etape = "Analyse de sentiment"
-        sentiment = analyze_sentiment(transcription)
+        sentiment = analyze_sentiment(texte_securise)
 
         print("\n--- ANALYSE DE SENTIMENT ---")
         print(sentiment)
 
         # 3. Détection de l'intention
         etape = "Détection de l'intention"
-        intent = detect_intent(transcription)
+        intent = detect_intent(texte_securise)
 
         print("\n--- INTENTION DÉTECTÉE ---")
         print(intent)
@@ -62,7 +77,7 @@ def main():
                 "sources": []
             }
         else:
-            result = generate_answer(transcription, intent)
+            result = generate_answer(texte_securise, intent)
 
         print("\n--- RÉPONSE DE L'ASSISTANT ---")
         print(result["answer"])
