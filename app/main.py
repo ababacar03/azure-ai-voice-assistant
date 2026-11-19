@@ -81,7 +81,10 @@ def main():
 
             # 4. Détection des intentions
             etape = "Détection des intentions"
-            intents = detect_intent(texte_securise)
+            intents = detect_intent(
+            texte_securise,
+            conversation_history=conversation_history
+        )
 
             print("\n--- INTENTIONS DÉTECTÉES ---")
             for intent in intents:

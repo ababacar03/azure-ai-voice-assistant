@@ -50,7 +50,31 @@ def detect_simple_intent(text: str) -> list[str] | None:
     return None
 
 
-def detect_intent(text: str) -> list[str]:
+def detect_intent(
+    text: str,
+    conversation_history: list[dict] | None = None
+) -> list[str]:
+    if conversation_history is None:
+        conversation_history = []
+
+    recent_history = conversation_history[-6:]
+
+    history_context = "\n".join(
+        f"{message['role']}: {message['content']}"
+        for message in recent_history
+    )
+    """
+    Identifie une ou plusieurs intentions dans un message client.
+    """
+    if conversation_history is None:
+        conversation_history = []
+
+    recent_history = conversation_history[-6:]
+
+    history_context = "\n".join(
+        f"{message['role']}: {message['content']}"
+        for message in recent_history
+    )
     """
     Identifie une ou plusieurs intentions dans un message client.
     """
@@ -116,8 +140,19 @@ def detect_intent(text: str) -> list[str]:
             "si le client formule également une demande.\n"
             "- N'utilise pas autre lorsqu'une intention de politesse correspond au message.\n"
             "- Ne retourne jamais hors_sujet avec une autre intention."
+            "- Utilise l'historique pour comprendre les questions complémentaires "
+            "et les références implicites du client.\n"
+            "- Si le message actuel est une question de suivi liée à une demande "
+            "précédente, identifie l'intention correspondante grâce au contexte.\n"
+            "- Classe uniquement le message actuel, sans reprendre automatiquement "
+            "toutes les intentions des messages précédents.\n"
         ),
-        input=f"Message du client : {text}",
+        input=(
+            f"Historique de la conversation :\n{history_context}\n\n"
+            f"Message actuel du client : {text}"
+            if history_context
+            else f"Message du client : {text}"
+        ),
         text={
             "format": {
                 "type": "json_schema",
@@ -139,11 +174,11 @@ def detect_intent(text: str) -> list[str]:
                                     "question_prix",
                                     "recommandation",
                                     "reclamation",
-                                    "autre",
-                                    "hors_sujet"
                                     "salutation",
                                     "remerciement",
                                     "fin_conversation",
+                                    "autre",
+                                    "hors_sujet"
                                 ]
                             }
                         }
