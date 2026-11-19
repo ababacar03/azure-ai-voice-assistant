@@ -17,8 +17,11 @@ DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
 
 
-
-def generate_answer(question: str, intent: str | list[str] = "autre") -> dict:
+def generate_answer(
+    question: str,
+    intent: str | list[str] = "autre",
+    conversation_history: list[dict] | None = None
+) -> dict:
     """
     Recherche les documents et génère une réponse
     en tenant compte de l'intention du client.
@@ -44,12 +47,31 @@ def generate_answer(question: str, intent: str | list[str] = "autre") -> dict:
 
     if not intents:
         intents = ["autre"]
-    # 1. Recherche hybride dans Azure AI Search
+            # Préparation de l'historique de conversation
+    if conversation_history is None:
+        conversation_history = []
+
+    recent_history = conversation_history[-6:]
+
+    history_context = "\n".join(
+        f"{message['role']}: {message['content']}"
+        for message in recent_history
+    )
+    # La recherche tient compte du contexte précédent
+    search_query = question
+
+    if history_context:
+        search_query = (
+            f"Historique de la conversation :\n"
+            f"{history_context}\n\n"
+            f"Question actuelle : {question}"
+        )
+
     documents = hybrid_search_documents(
-    question,
-    top=3,
-    intent=intents
-)
+        search_query,
+        top=3,
+        intent=intents
+    )
 
     if not documents:
         return {
@@ -105,10 +127,17 @@ def generate_answer(question: str, intent: str | list[str] = "autre") -> dict:
             "- Si aucune information ne permet de répondre, "
             "indique que tu ne disposes pas d'informations suffisantes "
             "et retourne une liste de sources vide.\n"
-            "- Retourne uniquement les noms exacts des fichiers utilisés."
+            "- Retourne uniquement les noms exacts des fichiers utilisés.\n"
+            "- Tiens compte de l'historique pour comprendre les questions de suivi.\n"
+            "- Réponds en priorité à la question actuelle du client.\n"
+            "- Les réponses précédentes ne remplacent jamais les documents "
+            "fournis comme source d'information.\n"
         ),
-        input=f"""
-Question du client :
+input=f"""
+Historique de la conversation :
+{history_context if history_context else "Aucun échange précédent."}
+
+Question actuelle du client :
 {question}
 
 Documents disponibles :

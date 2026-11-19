@@ -5,12 +5,56 @@ from pathlib import Path
 
 import azure.cognitiveservices.speech as speechsdk
 from dotenv import load_dotenv
+import sounddevice as sd
+import soundfile as sf
 
 load_dotenv()
 
 SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
 SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
 
+def record_audio(output_path: str) -> str:
+    """
+    Enregistre la voix depuis le microphone.
+    Appuyer sur Entrée pour démarrer, puis à nouveau pour arrêter.
+    """
+
+    sample_rate = 44100
+    audio_data = []
+
+    output_file = Path(output_path)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+
+    input("Appuie sur Entrée pour démarrer l'enregistrement...")
+
+    print("🎙️ Enregistrement en cours... Parle maintenant.")
+    print("Appuie sur Entrée pour arrêter.")
+
+    def callback(indata, frames, time, status):
+        if status:
+            print(status)
+
+        audio_data.append(indata.copy())
+
+    with sd.InputStream(
+        device=3,
+        samplerate=sample_rate,
+        channels=1,
+        dtype="int16",
+        callback=callback
+    ):
+        input()
+
+    if not audio_data:
+        raise RuntimeError("Aucun audio n'a été enregistré.")
+
+    audio = __import__("numpy").concatenate(audio_data, axis=0)
+
+    sf.write(output_file, audio, sample_rate, subtype="PCM_16")
+
+    print(f"Enregistrement sauvegardé : {output_file}")
+
+    return str(output_file)
 
 def transcribe_audio(audio_path: str) -> str:
     """
@@ -118,3 +162,6 @@ def transcribe_audio(audio_path: str) -> str:
 
     # Assemblage de toutes les phrases
     return " ".join(transcription_parts)
+if __name__ == "__main__":
+    audio_path = "data/samples/recorded.wav"
+    record_audio(audio_path)
