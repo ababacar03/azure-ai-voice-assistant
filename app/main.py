@@ -51,30 +51,32 @@ def main():
         print("\n--- DONNÉES PERSONNELLES DÉTECTÉES ---")
         for entity in pii_result["entities"]:
             print(entity)
-                # 3. Détection de l'intention
-        etape = "Détection de l'intention"
-        intent = detect_intent(texte_securise)
+                
+        # 3. Détection des intentions
+        etape = "Détection des intentions"
+        intents = detect_intent(texte_securise)
 
-        print("\n--- INTENTION DÉTECTÉE ---")
-        print(intent)
+        print("\n--- INTENTIONS DÉTECTÉES ---")
+        for intent in intents:
+            print("-", intent)
 
-        # Analyses conditionnelles selon l'intention
+        # Analyses conditionnelles selon les intentions
         sentiment = None
         key_phrases = []
         entities = []
 
-        if intent in ["reclamation", "remboursement"]:
+        if any(intent in ["reclamation", "remboursement"] for intent in intents):
             etape = "Analyse de sentiment"
             sentiment = analyze_sentiment(texte_securise)
 
             print("\n--- ANALYSE DE SENTIMENT ---")
             print(sentiment)
 
-        if intent in [
+        if any(intent in [
             "information_produit",
             "question_prix",
             "recommandation"
-        ]:
+        ] for intent in intents):
             etape = "Extraction des mots-clés"
             key_phrases = extract_key_phrases(texte_securise)
 
@@ -82,25 +84,28 @@ def main():
             for phrase in key_phrases:
                 print("-", phrase)
 
-        if intent in [
+        if any(intent in [
             "reclamation",
             "remboursement",
             "suivi_livraison",
             "information_produit",
             "question_prix",
             "recommandation"
-        ]:
+        ] for intent in intents):
             etape = "Reconnaissance des entités"
             entities = recognize_entities(transcription)
 
-        print("\n--- ENTITÉS DÉTECTÉES ---")
-        for entity in entities:
-            print(entity)
+            print("\n--- ENTITÉS DÉTECTÉES ---")
+            for entity in entities:
+                print(entity)
 
+
+       
        
         # 4. Génération de la réponse
         etape = "Génération de la réponse"
-        if intent == "hors_sujet":
+
+        if "hors_sujet" in intents:
             result = {
                 "answer": (
                     "Désolé, je suis un assistant dédié à notre service client. "
@@ -110,14 +115,14 @@ def main():
                 "sources": []
             }
         else:
-            result = generate_answer(texte_securise, intent)
+            result = generate_answer(texte_securise, intents)
+            print("\n--- RÉPONSE DE L'ASSISTANT ---")
+            print(result["answer"])
 
-        print("\n--- RÉPONSE DE L'ASSISTANT ---")
-        print(result["answer"])
+            print("\n--- DOCUMENTS UTILISÉS ---")
+            for source in result["sources"]:
+                print("-", source)
 
-        print("\n--- DOCUMENTS UTILISÉS ---")
-        for source in result["sources"]:
-            print("-", source)
 
         # 4. Text-to-Speech
         etape = "Text-to-Speech"

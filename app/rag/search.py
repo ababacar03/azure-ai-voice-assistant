@@ -226,7 +226,7 @@ def hybrid_search_documents(
     top: int = 3,
     vector_k: int = 10,
     min_score: float = 0.0,
-    intent: str = "autre"
+    intent: str | list[str] = "autre"
 ):
     """
     Combine BM25 et la recherche vectorielle.
@@ -329,9 +329,10 @@ def delete_all_documents():
 
     print("Nettoyage de l'index terminé.")
 
-def get_preferred_files(intent: str) -> list[str]:
+
+def get_preferred_files(intent: str | list[str]) -> list[str]:
     """
-    Retourne les fichiers à privilégier selon l'intention.
+    Retourne les fichiers à privilégier selon une ou plusieurs intentions.
     """
 
     intent_files = {
@@ -347,4 +348,19 @@ def get_preferred_files(intent: str) -> list[str]:
         "autre": []
     }
 
-    return intent_files.get(intent, [])
+    # Accepter une seule intention ou plusieurs
+    if isinstance(intent, str):
+        intents = [intent]
+    else:
+        intents = intent
+
+    # Regrouper les fichiers sans doublons
+    preferred_files = []
+
+    for current_intent in intents:
+        for file_name in intent_files.get(current_intent, []):
+            if file_name not in preferred_files:
+                preferred_files.append(file_name)
+
+    return preferred_files
+

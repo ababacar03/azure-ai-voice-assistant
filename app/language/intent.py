@@ -14,19 +14,19 @@ ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
 
-
-
-def detect_intent(text: str) -> str:
+def detect_intent(text: str) -> list[str]:
     """
-    Identifie l'intention principale d'un message client.
+    Identifie une ou plusieurs intentions dans un message client.
     """
     if not ENDPOINT or not DEPLOYMENT:
         raise ValueError("Configuration Azure OpenAI manquante.")
+
     if not text or not text.strip():
         raise ValueError("Le message ne peut pas être vide.")
+
     token_provider = get_bearer_token_provider(
-    DefaultAzureCredential(),
-    "https://ai.azure.com/.default"
+        DefaultAzureCredential(),
+        "https://ai.azure.com/.default"
     )
 
     client = OpenAI(
@@ -39,35 +39,34 @@ def detect_intent(text: str) -> str:
         instructions=(
             "Tu es un système de classification des intentions "
             "dans un assistant de service client.\n"
-            "Analyse le message et identifie son intention principale.\n\n"
+            "Identifie toutes les intentions clairement exprimées "
+            "dans le message du client.\n\n"
 
             "Catégories possibles :\n"
-            "- remboursement : demande de remboursement ou de retour d'argent.\n"
-            "- suivi_livraison : suivi de commande, colis ou livraison.\n"
-            "- contact : recherche des coordonnées ou moyens de contact.\n"
-            "- paiement : questions sur les moyens ou modalités de paiement.\n"
-            "- information_produit : questions sur les caractéristiques, "
-            "fonctionnalités ou informations concernant un produit ou service.\n"
-            "- question_prix : questions sur les tarifs, prix, coûts ou budgets.\n"
-            "- recommandation : demande de conseils, suggestions ou comparaisons.\n"
-            "- reclamation : insatisfaction, problème rencontré ou plainte.\n"
-            "- autre : question qui concerne le service client, mais ne correspond "
-            "à aucune catégorie précédente.\n"
-            "- hors_sujet : question sans rapport avec les produits, services "
-            "ou activités de l'entreprise.\n\n"
+            "- remboursement\n"
+            "- suivi_livraison\n"
+            "- contact\n"
+            "- paiement\n"
+            "- information_produit\n"
+            "- question_prix\n"
+            "- recommandation\n"
+            "- reclamation\n"
+            "- autre\n"
+            "- hors_sujet\n\n"
 
             "Règles de classification :\n"
-            "- Choisis une seule intention principale.\n"
-            "- Base-toi uniquement sur le contenu du message.\n"
-            "- Ne confonds pas une question sur le prix avec une question sur le paiement.\n"
-            "- Une demande de conseil ou de suggestion correspond à recommandation.\n"
-            "- Un problème ou une insatisfaction exprimée correspond à reclamation.\n"
-            "- Une question générale sur un compte client ou une demande métier inconnue "
-            "correspond à autre.\n"
-            "- Une question de culture générale, de programmation, de météo ou "
-            "un sujet sans rapport avec l'entreprise correspond à hors_sujet.\n"
-            "- Si plusieurs intentions sont présentes, choisis celle qui domine.\n"
-            "- Ne déduis pas une intention qui n'est pas exprimée."
+            "- Retourne une liste contenant une ou plusieurs intentions.\n"
+            "- Identifie toutes les demandes distinctes réellement exprimées.\n"
+            "- N'ajoute pas une intention simplement parce qu'elle est liée au sujet.\n"
+            "- Une insatisfaction explicite correspond à reclamation.\n"
+            "- Une demande de suivi correspond à suivi_livraison.\n"
+            "- Une demande de remboursement correspond à remboursement.\n"
+            "- Une question sur les prix correspond à question_prix.\n"
+            "- Une demande de conseil correspond à recommandation.\n"
+            "- Si aucune catégorie métier ne correspond, utilise autre.\n"
+            "- Si le message est sans rapport avec l'entreprise, utilise "
+            "uniquement hors_sujet.\n"
+            "- Ne retourne jamais hors_sujet avec une autre intention."
         ),
         input=f"Message du client : {text}",
         text={
@@ -78,23 +77,26 @@ def detect_intent(text: str) -> str:
                 "schema": {
                     "type": "object",
                     "properties": {
-                        "intent": {
-                            "type": "string",
-                            "enum": [
-                                "remboursement",
-                                "suivi_livraison",
-                                "contact",
-                                "paiement",
-                                "information_produit",
-                                "question_prix",
-                                "recommandation",
-                                "reclamation",
-                                "autre",
-                                "hors_sujet"
-                            ]
+                        "intents": {
+                            "type": "array",
+                            "items": {
+                                "type": "string",
+                                "enum": [
+                                    "remboursement",
+                                    "suivi_livraison",
+                                    "contact",
+                                    "paiement",
+                                    "information_produit",
+                                    "question_prix",
+                                    "recommandation",
+                                    "reclamation",
+                                    "autre",
+                                    "hors_sujet"
+                                ]
+                            }
                         }
                     },
-                    "required": ["intent"],
+                    "required": ["intents"],
                     "additionalProperties": False
                 }
             }
@@ -102,5 +104,12 @@ def detect_intent(text: str) -> str:
     )
 
     result = json.loads(response.output_text)
+    intents = result["intents"]
 
-    return result["intent"]
+    if not intents:
+        raise ValueError("Aucune intention détectée.")
+
+    if "hors_sujet" in intents and len(intents) > 1:
+        raise ValueError("Classification incohérente : hors_sujet combiné.")
+
+    return intents

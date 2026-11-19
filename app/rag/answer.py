@@ -18,7 +18,7 @@ DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
 
 
 
-def generate_answer(question: str, intent: str = "autre") -> dict:
+def generate_answer(question: str, intent: str | list[str] = "autre") -> dict:
     """
     Recherche les documents et génère une réponse
     en tenant compte de l'intention du client.
@@ -37,12 +37,18 @@ def generate_answer(question: str, intent: str = "autre") -> dict:
         base_url=ENDPOINT,
         api_key=token_provider
     )
+    if isinstance(intent, str):
+        intents = [intent]
+    else:
+        intents = intent
 
+    if not intents:
+        intents = ["autre"]
     # 1. Recherche hybride dans Azure AI Search
     documents = hybrid_search_documents(
     question,
     top=3,
-    intent=intent
+    intent=intents
 )
 
     if not documents:
@@ -74,9 +80,12 @@ def generate_answer(question: str, intent: str = "autre") -> dict:
         "autre": "L'intention du client ne correspond pas aux catégories précédentes."
     }
 
-    intent_context = intent_instructions.get(
-        intent,
-        intent_instructions["autre"]
+    intent_context = "\n".join(
+        intent_instructions.get(
+            current_intent,
+            intent_instructions["autre"]
+        )
+        for current_intent in intents
     )
 
     # 4. Génération de la réponse avec GPT-5
@@ -85,7 +94,7 @@ def generate_answer(question: str, intent: str = "autre") -> dict:
         instructions=(
             "Tu es un assistant de service client. "
             "Tu dois répondre en français, de manière claire et naturelle.\n\n"
-            f"Intention détectée : {intent}\n"
+            f"Intentions détectées : {', '.join(intents)}\n"
             f"Contexte de l'intention : {intent_context}\n\n"
             "Consignes :\n"
             "- Utilise exclusivement les informations des documents fournis.\n"
