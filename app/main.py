@@ -14,7 +14,17 @@ from app.language.entities import recognize_entities
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
+def get_social_response(intents: list[str]) -> str | None:
+    if "salutation" in intents:
+        return "Bonjour ! Comment puis-je vous aider aujourd'hui ?"
 
+    if "remerciement" in intents:
+        return "Avec plaisir ! Je suis là pour vous aider."
+
+    if "fin_conversation" in intents:
+        return "Au revoir et à bientôt !"
+
+    return None
 def main():
     audio_path = PROJECT_ROOT / "data" / "samples" / "recorded.wav"
     output_path = PROJECT_ROOT / "data" / "output" / "response.wav"
@@ -119,7 +129,15 @@ def main():
             # 6. Génération de la réponse
             etape = "Génération de la réponse"
 
-            if "hors_sujet" in intents:
+            social_response = get_social_response(intents)
+
+            if social_response:
+                result = {
+                    "answer": social_response,
+                    "sources": []
+                }
+
+            elif "hors_sujet" in intents:
                 result = {
                     "answer": (
                         "Désolé, je suis un assistant dédié à notre service client. "
@@ -128,6 +146,7 @@ def main():
                     ),
                     "sources": []
                 }
+
             else:
                 result = generate_answer(
                     texte_securise,

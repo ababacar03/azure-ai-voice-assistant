@@ -6,12 +6,48 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-
+import re
+import unicodedata
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
 
 ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
 DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
+
+def detect_simple_intent(text: str) -> list[str] | None:
+    normalized = unicodedata.normalize("NFD", text.lower())
+    normalized = "".join(
+        char for char in normalized
+        if unicodedata.category(char) != "Mn"
+    )
+    normalized = re.sub(r"[^\w\s]", " ", normalized)
+    normalized = " ".join(normalized.split())
+
+    greetings = {
+        "bonjour", "bonsoir", "salut", "coucou",
+        "hello", "hey"
+    }
+
+    thanks = {
+        "merci", "merci beaucoup", "merci bien",
+        "je vous remercie", "je te remercie"
+    }
+
+    goodbyes = {
+        "au revoir", "a bientot", "a la prochaine",
+        "bonne journee", "bonne soiree", "a plus"
+    }
+
+    if normalized in greetings:
+        return ["salutation"]
+
+    if normalized in thanks:
+        return ["remerciement"]
+
+    if normalized in goodbyes:
+        return ["fin_conversation"]
+
+    return None
 
 
 def detect_intent(text: str) -> list[str]:
@@ -23,6 +59,10 @@ def detect_intent(text: str) -> list[str]:
 
     if not text or not text.strip():
         raise ValueError("Le message ne peut pas être vide.")
+    simple_intent = detect_simple_intent(text)
+
+    if simple_intent:
+        return simple_intent
 
     token_provider = get_bearer_token_provider(
         DefaultAzureCredential(),
@@ -51,6 +91,9 @@ def detect_intent(text: str) -> list[str]:
             "- question_prix\n"
             "- recommandation\n"
             "- reclamation\n"
+            "- salutation\n"
+            "- remerciement\n"
+            "- fin_conversation\n"
             "- autre\n"
             "- hors_sujet\n\n"
 
@@ -66,6 +109,12 @@ def detect_intent(text: str) -> list[str]:
             "- Si aucune catégorie métier ne correspond, utilise autre.\n"
             "- Si le message est sans rapport avec l'entreprise, utilise "
             "uniquement hors_sujet.\n"
+            "- Une salutation simple correspond à salutation.\n"
+            "- Un remerciement simple correspond à remerciement.\n"
+            "- Un message qui prend congé correspond à fin_conversation.\n"
+            "- Les formules de politesse peuvent être combinées avec une intention métier "
+            "si le client formule également une demande.\n"
+            "- N'utilise pas autre lorsqu'une intention de politesse correspond au message.\n"
             "- Ne retourne jamais hors_sujet avec une autre intention."
         ),
         input=f"Message du client : {text}",
@@ -92,6 +141,9 @@ def detect_intent(text: str) -> list[str]:
                                     "reclamation",
                                     "autre",
                                     "hors_sujet"
+                                    "salutation",
+                                    "remerciement",
+                                    "fin_conversation",
                                 ]
                             }
                         }
@@ -104,7 +156,7 @@ def detect_intent(text: str) -> list[str]:
     )
 
     result = json.loads(response.output_text)
-    intents = result["intents"]
+    intents = list(dict.fromkeys(result["intents"]))
 
     if not intents:
         raise ValueError("Aucune intention détectée.")
