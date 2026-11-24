@@ -7,7 +7,23 @@ from app.language.key_phrases import extract_key_phrases
 from app.language.entities import recognize_entities
 
 
+
 def get_social_response(intents: list[str]) -> str | None:
+
+    # Les intentions métier sont prioritaires
+    business_intents = [
+        "reclamation",
+        "remboursement",
+        "suivi_livraison",
+        "information_produit",
+        "question_prix",
+        "recommandation"
+    ]
+
+    if any(intent in business_intents for intent in intents):
+        return None
+
+    # Gestion des interactions sociales simples
     if "salutation" in intents:
         return "Bonjour ! Comment puis-je vous aider aujourd'hui ?"
 
@@ -18,6 +34,7 @@ def get_social_response(intents: list[str]) -> str | None:
         return "Au revoir et à bientôt !"
 
     return None
+
 
 
 def process_text(
