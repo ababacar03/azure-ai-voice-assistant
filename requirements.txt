@@ -9,3 +9,4 @@ pydantic
 pytest
 azure-search-documents
 streamlit
+sounddevice
