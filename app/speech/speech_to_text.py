@@ -5,19 +5,21 @@ from pathlib import Path
 
 import azure.cognitiveservices.speech as speechsdk
 from dotenv import load_dotenv
-import sounddevice as sd
-import soundfile as sf
 
 load_dotenv()
 
 SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
 SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
 
+
 def record_audio(output_path: str) -> str:
     """
-    Enregistre la voix depuis le microphone.
-    Appuyer sur Entrée pour démarrer, puis à nouveau pour arrêter.
+    Enregistrement local depuis le microphone.
+    Utilisé uniquement pour les tests locaux.
     """
+    import sounddevice as sd
+    import soundfile as sf
+    import numpy as np
 
     sample_rate = 44100
     audio_data = []
@@ -27,39 +29,34 @@ def record_audio(output_path: str) -> str:
 
     input("Appuie sur Entrée pour démarrer l'enregistrement...")
 
-    print("🎙️ Enregistrement en cours... Parle maintenant.")
-    print("Appuie sur Entrée pour arrêter.")
+    print("Enregistrement en cours...")
 
     def callback(indata, frames, time, status):
         if status:
             print(status)
-
         audio_data.append(indata.copy())
 
     with sd.InputStream(
-        device=3,
         samplerate=sample_rate,
         channels=1,
         dtype="int16",
         callback=callback
     ):
-        input()
+        input("Appuie sur Entrée pour arrêter...")
 
     if not audio_data:
-        raise RuntimeError("Aucun audio n'a été enregistré.")
+        raise RuntimeError("Aucun audio enregistré.")
 
-    audio = __import__("numpy").concatenate(audio_data, axis=0)
+    audio = np.concatenate(audio_data, axis=0)
 
     sf.write(output_file, audio, sample_rate, subtype="PCM_16")
 
-    print(f"Enregistrement sauvegardé : {output_file}")
-
     return str(output_file)
+
 
 def transcribe_audio(audio_path: str) -> str:
     """
-    Transcrit intégralement un fichier audio avec Azure AI Speech
-    grâce à la reconnaissance continue et à la détection automatique
+    Transcription Azure Speech avec détection automatique
     de la langue.
     """
 
@@ -73,82 +70,64 @@ def transcribe_audio(audio_path: str) -> str:
             f"Fichier audio introuvable : {audio_file.resolve()}"
         )
 
-    # Configuration Azure Speech
     speech_config = speechsdk.SpeechConfig(
         subscription=SPEECH_KEY,
         region=SPEECH_REGION
     )
 
-    # AJOUT : Configuration de la détection automatique de la langue
     auto_detect_config = (
         speechsdk.languageconfig.AutoDetectSourceLanguageConfig(
             languages=["fr-FR", "en-US", "es-ES", "de-DE"]
         )
     )
 
-    # Configuration du fichier audio
     audio_config = speechsdk.audio.AudioConfig(
         filename=str(audio_file.resolve())
     )
 
-    # Création du recognizer
     recognizer = speechsdk.SpeechRecognizer(
         speech_config=speech_config,
         auto_detect_source_language_config=auto_detect_config,
         audio_config=audio_config
     )
 
-    # Stockage des phrases reconnues
     transcription_parts = []
     detected_languages = set()
     done = threading.Event()
     errors = []
 
-    # Événement : une phrase est reconnue
     def on_recognized(event):
         if event.result.reason == speechsdk.ResultReason.RecognizedSpeech:
             text = event.result.text.strip()
 
-            # AJOUT : Récupération de la langue détectée
             language_result = speechsdk.AutoDetectSourceLanguageResult(
                 event.result
             )
             detected_language = language_result.language
 
-            if detected_language and detected_language not in detected_languages:
+            if detected_language:
                 detected_languages.add(detected_language)
-                print(f"Langue détectée : {detected_language}")
 
             if text:
                 transcription_parts.append(text)
-                print(f"Reconnu : {text}")
 
-    # Événement : la lecture du fichier est terminée
     def on_session_stopped(event):
         done.set()
 
-    # Événement : reconnaissance annulée
     def on_canceled(event):
         details = speechsdk.CancellationDetails(event.result)
 
         if details.reason == speechsdk.CancellationReason.Error:
-            errors.append(
-                f"{details.reason}: {details.error_details}"
-            )
+            errors.append(details.error_details)
 
         done.set()
 
-    # Abonnement aux événements
     recognizer.recognized.connect(on_recognized)
     recognizer.session_stopped.connect(on_session_stopped)
     recognizer.canceled.connect(on_canceled)
 
     try:
-        print("Démarrage de la transcription...")
-
         recognizer.start_continuous_recognition_async().get()
-
-        # Attendre la fin du fichier audio
         done.wait()
 
     finally:
@@ -157,11 +136,7 @@ def transcribe_audio(audio_path: str) -> str:
     if errors:
         raise RuntimeError("Erreur Azure Speech : " + errors[0])
 
-    if not transcription_parts:
-        return ""
+    if detected_languages:
+        print("Langue(s) détectée(s) :", detected_languages)
 
-    # Assemblage de toutes les phrases
     return " ".join(transcription_parts)
-if __name__ == "__main__":
-    audio_path = "data/samples/recorded.wav"
-    record_audio(audio_path)
