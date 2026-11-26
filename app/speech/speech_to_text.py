@@ -5,8 +5,6 @@ from pathlib import Path
 
 import azure.cognitiveservices.speech as speechsdk
 from dotenv import load_dotenv
-import sounddevice as sd
-import soundfile as sf
 
 load_dotenv()
 
@@ -14,6 +12,8 @@ SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
 SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
 
 def record_audio(output_path: str) -> str:
+    import sounddevice as sd
+    import soundfile as sf
     """
     Enregistre la voix depuis le microphone.
     Appuyer sur Entrée pour démarrer, puis à nouveau pour arrêter.
