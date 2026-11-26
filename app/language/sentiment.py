@@ -1,9 +1,9 @@
 
-import os
-
 from dotenv import load_dotenv
 from azure.ai.textanalytics import TextAnalyticsClient
 from azure.core.credentials import AzureKeyCredential
+
+from app.config import get_required_setting
 
 load_dotenv()
 
@@ -13,25 +13,18 @@ def analyze_sentiment(text: str) -> dict:
     Analyse le sentiment d'un texte avec Azure AI Language.
     """
 
-    # Vérifier que le texte n'est pas vide
     if not text or not text.strip():
         raise ValueError("Le texte à analyser est vide.")
 
-    endpoint = os.getenv("AZURE_LANGUAGE_ENDPOINT")
-    key = os.getenv("AZURE_LANGUAGE_KEY")
-
-    if not endpoint or not key:
-        raise ValueError("Configuration Azure Language manquante.")
+    endpoint = get_required_setting("AZURE_LANGUAGE_ENDPOINT")
+    key = get_required_setting("AZURE_LANGUAGE_KEY")
 
     client = TextAnalyticsClient(
         endpoint=endpoint,
         credential=AzureKeyCredential(key)
     )
 
-    results = client.analyze_sentiment(
-        documents=[text]
-    )
-
+    results = client.analyze_sentiment(documents=[text])
     result = results[0]
 
     if result.is_error:

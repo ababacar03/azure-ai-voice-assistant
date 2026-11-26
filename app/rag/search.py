@@ -9,6 +9,7 @@ from azure.search.documents.indexes import SearchIndexClient
 from app.rag.embeddings import generate_embedding
 from azure.search.documents.models import VectorizedQuery
 from app.rag.chunking import split_text_into_chunks
+from app.config import get_required_setting
 from azure.search.documents.indexes.models import (
     SearchIndex,
     SearchField,
@@ -27,36 +28,37 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
 
 # Configuration Azure AI Search
-ENDPOINT = os.getenv("AZURE_SEARCH_ENDPOINT")
-KEY = os.getenv("AZURE_SEARCH_KEY")
-
 INDEX_NAME = "voice-assistant-index"
 
 # Dossier contenant les documents
 DOCUMENTS_DIR = PROJECT_ROOT / "data" / "knowledge_base"
 
 
+
 def get_index_client():
     """Crée le client permettant de gérer les index."""
 
-    if not ENDPOINT or not KEY:
-        raise ValueError("Configuration Azure AI Search manquante.")
+    endpoint = get_required_setting("AZURE_SEARCH_ENDPOINT")
+    key = get_required_setting("AZURE_SEARCH_KEY")
 
     return SearchIndexClient(
-        endpoint=ENDPOINT,
-        credential=AzureKeyCredential(KEY)
+        endpoint=endpoint,
+        credential=AzureKeyCredential(key)
     )
+
+
 def get_search_client():
     """Crée le client permettant de rechercher des documents."""
 
-    if not ENDPOINT or not KEY:
-        raise ValueError("Configuration Azure AI Search manquante.")
+    endpoint = get_required_setting("AZURE_SEARCH_ENDPOINT")
+    key = get_required_setting("AZURE_SEARCH_KEY")
 
     return SearchClient(
-        endpoint=ENDPOINT,
+        endpoint=endpoint,
         index_name=INDEX_NAME,
-        credential=AzureKeyCredential(KEY)
+        credential=AzureKeyCredential(key)
     )
+
 
 
 def create_search_index():

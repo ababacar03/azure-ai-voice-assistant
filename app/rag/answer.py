@@ -6,18 +6,17 @@ from pathlib import Path
 from dotenv import load_dotenv
 from openai import OpenAI
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from app.config import get_required_setting
 
 from app.rag.search import hybrid_search_documents
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
 
-ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-DEPLOYMENT = os.getenv("AZURE_OPENAI_DEPLOYMENT")
-
 
 
 def generate_answer(
+        
     question: str,
     intent: str | list[str] = "autre",
     conversation_history: list[dict] | None = None
@@ -26,8 +25,8 @@ def generate_answer(
     Recherche les documents et génère une réponse
     en tenant compte de l'intention du client.
     """
-    if not ENDPOINT or not DEPLOYMENT:
-        raise ValueError("Configuration Azure OpenAI manquante.")
+    endpoint = get_required_setting("AZURE_OPENAI_ENDPOINT")
+    deployment = get_required_setting("AZURE_OPENAI_DEPLOYMENT")
     
     if not question or not question.strip():
         raise ValueError("La question ne peut pas être vide.")
@@ -37,7 +36,7 @@ def generate_answer(
     )
 
     client = OpenAI(
-        base_url=ENDPOINT,
+        base_url=endpoint,
         api_key=token_provider
     )
     if isinstance(intent, str):
@@ -112,7 +111,7 @@ def generate_answer(
 
     # 4. Génération de la réponse avec GPT-5
     response = client.responses.create(
-        model=DEPLOYMENT,
+        model=deployment,
         instructions=(
             "Tu es un assistant de service client. "
             "Tu dois répondre en français, de manière claire et naturelle.\n\n"

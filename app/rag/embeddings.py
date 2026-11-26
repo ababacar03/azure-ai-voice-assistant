@@ -1,7 +1,4 @@
 
-import os
-from pathlib import Path
-
 from dotenv import load_dotenv
 from openai import OpenAI
 from azure.identity import (
@@ -9,12 +6,9 @@ from azure.identity import (
     get_bearer_token_provider
 )
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-load_dotenv(PROJECT_ROOT / ".env")
+from app.config import get_required_setting
 
-ENDPOINT = os.getenv("AZURE_OPENAI_ENDPOINT")
-DEPLOYMENT = "text-embedding-3-small"
-
+load_dotenv()
 
 
 def generate_embedding(text: str) -> list:
@@ -22,24 +16,27 @@ def generate_embedding(text: str) -> list:
     Transforme un texte en vecteur numérique
     avec Azure OpenAI Embeddings.
     """
-    if not ENDPOINT:
-        raise ValueError("Configuration Azure OpenAI manquante.")
-    
+
     if not text or not text.strip():
         raise ValueError("Le texte à vectoriser est vide.")
-    
+
+    endpoint = get_required_setting("AZURE_OPENAI_ENDPOINT")
+    deployment = get_required_setting(
+        "AZURE_OPENAI_EMBEDDING_DEPLOYMENT"
+    )
+
     token_provider = get_bearer_token_provider(
         DefaultAzureCredential(),
         "https://ai.azure.com/.default"
     )
 
     client = OpenAI(
-        base_url=ENDPOINT,
+        base_url=endpoint,
         api_key=token_provider
     )
 
     response = client.embeddings.create(
-        model=DEPLOYMENT,
+        model=deployment,
         input=text
     )
 

@@ -1,15 +1,17 @@
 
-import os
+
 import threading
 from pathlib import Path
-
+from app.config import get_required_setting
 import azure.cognitiveservices.speech as speechsdk
 from dotenv import load_dotenv
 
+from app.config import get_required_setting
+
 load_dotenv()
 
-SPEECH_KEY = os.getenv("AZURE_SPEECH_KEY")
-SPEECH_REGION = os.getenv("AZURE_SPEECH_REGION")
+
+
 
 
 def record_audio(output_path: str) -> str:
@@ -59,7 +61,8 @@ def transcribe_audio(audio_path: str) -> str:
     Transcription Azure Speech avec détection automatique
     de la langue.
     """
-
+    SPEECH_KEY = get_required_setting("AZURE_SPEECH_KEY")
+    SPEECH_REGION = get_required_setting("AZURE_SPEECH_REGION")
     if not SPEECH_KEY or not SPEECH_REGION:
         raise ValueError("Configuration Azure Speech manquante.")
 
